@@ -1,3 +1,17 @@
+# TODO (Jeremy)
+
+1. Error 1 to fix: Preference UI not aligned
+    - UI File: McBopomofo/Source/Base.lproj/preferences.xib
+    - Code File: McBopomofo/Source/PreferencesWindowController.swift
+
+2. Error 2 to fix: The way to slice the previously input text (in a length of 10)
+    - Code File: McBopomofo/Source/InputMethodController.swift
+
+3. Feature to add:
+    1. once backspace can still remove the previous word
+    2. Change the prompt to: 你是一個繁體中文輸入法，幫助使用者預測接下來的句子，只要輸出一個句子即可，不要包含使用者輸入的詞彙，例如使用者輸入「我」，你要回答「是老師」，或「要喝水」，不能回答「我是老師」或「我要喝水」。
+
+Change prompt in English/Chinese mode
 # OpenVanilla McBopomofo 小麥注音輸入法
 
 ## 系統需求
