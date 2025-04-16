@@ -739,4 +739,36 @@ class InputState: NSObject {
         }
 
     }
+    
+    // MARK: -
+    
+    /// Represents that the input method is showing an autocomplete suggestion.
+    @objc(InputStateAutocomplete)
+    class Autocomplete: InputState {
+        @objc private(set) var suggestion: String
+        @objc private(set) var previousText: String
+        
+        @objc init(suggestion: String, previousText: String) {
+            self.suggestion = suggestion
+            self.previousText = previousText
+            super.init()
+        }
+        
+        override var description: String {
+            "<InputState.Autocomplete, suggestion:\(suggestion), previousText:\(previousText)>"
+        }
+        
+        @objc var attributedString: NSAttributedString {
+            let attributedString = NSMutableAttributedString(string: suggestion)
+            attributedString.addAttributes(
+                [
+                    .foregroundColor: NSColor.placeholderTextColor,
+                    .underlineStyle: NSUnderlineStyle.single.rawValue,
+                    .markedClauseSegment: 0,
+                ],
+                range: NSRange(location: 0, length: suggestion.count)
+            )
+            return attributedString
+        }
+    }
 }

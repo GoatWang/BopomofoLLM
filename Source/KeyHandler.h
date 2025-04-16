@@ -93,6 +93,7 @@ extern InputMode InputModePlainBopomofo;
 @property (weak, nonatomic) id<KeyHandlerDelegate> delegate;
 @property (assign, nonatomic, readonly) NSInteger actualCandidateCursorIndex;
 @property (assign, nonatomic, readonly) NSInteger cursorIndex;
+@property (assign, nonatomic, readonly) BOOL hasComposingText;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -320,6 +320,8 @@ extension McBopomofoInputMethodController {
             handle(state: newState, previous: previous, client: client)
         case let newState as InputState.ShowingCharInfo:
             handle(state: newState, previous: previous, client: client)
+        case let newState as InputState.Autocomplete:
+            handle(state: newState, previous: previous, client: client)
         default:
             break
         }
@@ -382,6 +384,11 @@ extension McBopomofoInputMethodController {
 
         if let previous = previous as? InputState.NotEmpty {
             commit(text: previous.composingBuffer, client: client)
+            
+            // Trigger autocomplete after committing text if enabled
+            if Preferences.autocompleteEnabled && keyHandler.inputMode == .bopomofo {
+                triggerAutocomplete(client: client)
+            }
         }
         client.setMarkedText("", selectionRange: NSMakeRange(0, 0), replacementRange: NSMakeRange(NSNotFound, NSNotFound))
     }
@@ -408,6 +415,13 @@ extension McBopomofoInputMethodController {
         let poppedText = state.poppedText
         if !poppedText.isEmpty {
             commit(text: poppedText, client: client)
+            
+            // Trigger autocomplete after committing text if enabled
+            if Preferences.autocompleteEnabled && keyHandler.inputMode == .bopomofo && 
+               !(previous is InputState.Autocomplete) && 
+               !keyHandler.hasComposingText {
+                triggerAutocomplete(client: client)
+            }
         }
         client.setMarkedText("", selectionRange: NSMakeRange(0, 0), replacementRange: NSMakeRange(NSNotFound, NSNotFound))
     }
@@ -597,6 +611,99 @@ extension McBopomofoInputMethodController {
             client.setMarkedText(candidateDate.attributedString, selectionRange: NSMakeRange(Int(candidateDate.cursorIndex), 0), replacementRange: NSMakeRange(NSNotFound, NSNotFound))
         }
         show(candidateWindowWith: state, client: client)
+    }
+    
+    private func handle(state: InputState.Autocomplete, previous: InputState, client: Any?) {
+        hideTooltip()
+        
+        guard let client = client as? IMKTextInput else {
+            return
+        }
+        
+        client.setMarkedText(state.attributedString, selectionRange: NSMakeRange(0, 0), replacementRange: NSMakeRange(NSNotFound, NSNotFound))
+    }
+    
+//    // Get the recent context from the client (last 10 characters)
+//    private func getRecentContext(client: IMKTextInput) -> String {
+//        var lineHeightRect = NSRect.zero
+//        var context = ""
+//        
+//        // Try to get the text before the cursor
+//        let range = NSRange(location: 0, length: 10)
+//        if let attributedString = client.attributedSubstring(from: range) {
+//            context = attributedString.string
+//        }
+//        
+//        // If we couldn't get the text, try another approach
+//        if context.isEmpty {
+//            // Get the current line
+//            var lineRange = NSRange(location: NSNotFound, length: 0)
+//            client.attributes(forCharacterIndex: 0, lineHeightRectangle: &lineHeightRect, actualRange: &lineRange)
+//            
+//            if lineRange.location != NSNotFound && lineRange.length > 0 {
+//                if let attributedString = client.attributedSubstring(from: lineRange) {
+//                    context = attributedString.string
+//                    
+//                    // Limit to last 10 characters
+//                    if context.count > 10 {
+//                        context = String(context.suffix(10))
+//                    }
+//                }
+//            }
+//        }
+//        
+//        return context
+//    }
+    
+    private func getRecentContext(client: IMKTextInput) -> String {
+        let maxLength = 10
+        let selectedRange = client.selectedRange()
+        
+        // Make sure the cursor is at a valid location
+        guard selectedRange.location != NSNotFound else {
+            return ""
+        }
+
+        // Calculate a safe range up to 10 characters before the cursor
+        let location = max(0, selectedRange.location - maxLength)
+        let length = min(maxLength, selectedRange.location)
+        let range = NSRange(location: location, length: length)
+        
+        // Attempt to get the attributed substring from the input client
+        if let attributedString = client.attributedSubstring(from: range) {
+            return attributedString.string
+        }
+
+        return ""
+    }
+    
+    // Trigger autocomplete suggestion
+    private func triggerAutocomplete(client: Any?) {
+        guard Preferences.autocompleteEnabled,
+              let client = client as? IMKTextInput,
+              !keyHandler.hasComposingText else {
+            return
+        }
+        
+        // Get the recent context
+        let context = getRecentContext(client: client)
+        
+        // Only trigger if we have context
+        if !context.isEmpty {
+            let ollamaService = OllamaService(model: Preferences.autocompleteModel)
+            
+            ollamaService.generateCompletion(context: context) { [weak self] suggestion, error in
+                guard let self = self, let suggestion = suggestion, !suggestion.isEmpty, error == nil else {
+                    return
+                }
+                
+                // Switch to main thread to update UI
+                DispatchQueue.main.async {
+                    let autocompleteState = InputState.Autocomplete(suggestion: suggestion, previousText: context)
+                    self.handle(state: autocompleteState, client: client)
+                }
+            }
+        }
     }
 }
 

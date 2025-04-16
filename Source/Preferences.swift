@@ -73,6 +73,8 @@ private let kBig5InputEnabledKey = "Big5InputEnabled"
 let kBeepUponInputErrorKey = "BeepUponInputError"
 
 private let kEnableUserPhrasesInPlainBopomofo = "EnableUserPhrasesInPlainBopomofo"
+private let kAutocompleteEnabledKey = "AutocompleteEnabled"
+private let kAutocompleteModelKey = "AutocompleteModel"
 
 // MARK: Property wrappers
 
@@ -227,6 +229,8 @@ class Preferences: NSObject {
             kRepeatedPunctuationToSelectCandidateEnabledKey,
             kUseCustomUserPhraseLocation,
             kCustomUserPhraseLocation,
+            kAutocompleteEnabledKey,
+            kAutocompleteModelKey,
         ]
     }
 
@@ -253,6 +257,8 @@ class Preferences: NSObject {
         Preferences.addPhraseHookPath = Preferences.addPhraseHookPath
         Preferences.beepUponInputError = Preferences.beepUponInputError
         Preferences.enableUserPhrasesInPlainBopomofo = Preferences.enableUserPhrasesInPlainBopomofo
+        Preferences.autocompleteEnabled = Preferences.autocompleteEnabled
+        Preferences.autocompleteModel = Preferences.autocompleteModel
     }
 
     @EnumUserDefault(key: kKeyboardLayoutPreferenceKey, defaultValue: KeyboardLayout.standard)
@@ -530,4 +536,13 @@ extension Preferences {
 extension Preferences {
     @UserDefault(key: kEnableUserPhrasesInPlainBopomofo, defaultValue: false)
     @objc static var enableUserPhrasesInPlainBopomofo: Bool
+}
+
+// MARK: - Autocomplete Settings
+extension Preferences {
+    @UserDefault(key: kAutocompleteEnabledKey, defaultValue: true)
+    @objc static var autocompleteEnabled: Bool
+    
+    @UserDefault(key: kAutocompleteModelKey, defaultValue: "gemma3:4b")
+    @objc static var autocompleteModel: String
 }

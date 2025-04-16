@@ -848,6 +848,13 @@ InputMode InputModePlainBopomofo = @"org.openvanilla.inputmethod.McBopomofo.Plai
 
 - (BOOL)_handleEscWithState:(InputState *)state stateCallback:(void (^)(InputState *))stateCallback errorCallback:(void (^)(void))errorCallback
 {
+    // Handle Autocomplete state - cancel the suggestion
+    if ([state isKindOfClass:[InputStateAutocomplete class]]) {
+        InputStateEmpty *empty = [[InputStateEmpty alloc] init];
+        stateCallback(empty);
+        return YES;
+    }
+    
     if (![state isKindOfClass:[InputStateInputting class]]) {
         return NO;
     }
@@ -1167,6 +1174,16 @@ InputMode InputModePlainBopomofo = @"org.openvanilla.inputmethod.McBopomofo.Plai
 
 - (BOOL)_handleEnterWithState:(InputState *)state stateCallback:(void (^)(InputState *))stateCallback errorCallback:(void (^)(void))errorCallback
 {
+    // Handle Autocomplete state - accept the suggestion
+    if ([state isKindOfClass:[InputStateAutocomplete class]]) {
+        InputStateAutocomplete *autocomplete = (InputStateAutocomplete *)state;
+        InputStateCommitting *committing = [[InputStateCommitting alloc] initWithPoppedText:autocomplete.suggestion];
+        stateCallback(committing);
+        InputStateEmpty *empty = [[InputStateEmpty alloc] init];
+        stateCallback(empty);
+        return YES;
+    }
+    
     if (![state isKindOfClass:[InputStateInputting class]]) {
         return NO;
     }
@@ -2171,6 +2188,12 @@ InputMode InputModePlainBopomofo = @"org.openvanilla.inputmethod.McBopomofo.Plai
 {
     size_t cursor = _grid->cursor();
     return cursor;
+}
+
+- (BOOL)hasComposingText
+{
+    // Check if there's any text in the reading buffer or in the grid
+    return !_bpmfReadingBuffer->isEmpty() || _grid->length() > 0;
 }
 
 - (NSArray *)_currentReadings

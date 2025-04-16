@@ -51,6 +51,11 @@ fileprivate let kWindowTitleHeight: CGFloat = 78
     @IBOutlet weak var advancedSettingsView: NSView!
 
     @IBOutlet weak var addPhraseHookPathField: NSTextField!
+    
+    // Autocomplete UI controls
+    private var autocompleteEnabledButton: NSButton!
+    private var autocompleteModelTextField: NSTextField!
+    private var autocompleteModelLabel: NSTextField!
 
     override func awakeFromNib() {
         let toolbar = NSToolbar(identifier: "preference toolbar")
@@ -200,6 +205,131 @@ fileprivate let kWindowTitleHeight: CGFloat = 78
         customUserPhraseLocationEnabledButton.selectItem(at: index)
         updateUserPhraseLocation()
         addPhraseHookPathField.stringValue = Preferences.addPhraseHookPath
+        
+        // Setup autocomplete UI controls
+        setupAutocompleteControls()
+    }
+    
+    // private func setupAutocompleteControls1() {
+    //     guard let advancedView = advancedSettingsView else { return }
+        
+    //     // Find existing controls to position relative to them
+    //     let existingControls = advancedView.subviews
+        
+    //     // Find the punctuation symbols label to position our controls below it
+    //     let punctuationLabel = existingControls.first { ($0 as? NSTextField)?.stringValue == "Punctuation Symbols:" }
+    //     let yPosition = punctuationLabel?.frame.minY ?? 50
+        
+    //     // Create the autocomplete section label
+    //     let sectionLabel = NSTextField(labelWithString: "Autocomplete:")
+    //     sectionLabel.frame = NSRect(x: 134, y: yPosition - 30, width: 103, height: 16)
+    //     sectionLabel.alignment = .right
+    //     advancedView.addSubview(sectionLabel)
+        
+    //     // Create the autocomplete enabled checkbox
+    //     autocompleteEnabledButton = NSButton(checkboxWithTitle: "Enable autocomplete suggestions", target: self, action: #selector(toggleAutocompleteEnabled(_:)))
+    //     autocompleteEnabledButton.frame = NSRect(x: 241, y: yPosition - 30, width: 217, height: 18)
+    //     autocompleteEnabledButton.state = Preferences.autocompleteEnabled ? .on : .off
+    //     advancedView.addSubview(autocompleteEnabledButton)
+        
+    //     // Create the model label
+    //     autocompleteModelLabel = NSTextField(labelWithString: "Model:")
+    //     autocompleteModelLabel.frame = NSRect(x: 134, y: yPosition - 60, width: 103, height: 16)
+    //     autocompleteModelLabel.alignment = .right
+    //     advancedView.addSubview(autocompleteModelLabel)
+        
+    //     // Create the model text field
+    //     autocompleteModelTextField = NSTextField(frame: NSRect(x: 241, y: yPosition - 60, width: 217, height: 22))
+    //     autocompleteModelTextField.stringValue = Preferences.autocompleteModel
+    //     autocompleteModelTextField.target = self
+    //     autocompleteModelTextField.action = #selector(updateAutocompleteModel(_:))
+    //     advancedView.addSubview(autocompleteModelTextField)
+        
+    //     // Add a description text
+    //     let descriptionText = NSTextField(wrappingLabelWithString: "When enabled, autocomplete will suggest completions based on the previous text. Press Enter to accept or Esc to cancel.")
+    //     descriptionText.frame = NSRect(x: 241, y: yPosition - 100, width: 217, height: 32)
+    //     descriptionText.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+    //     advancedView.addSubview(descriptionText)
+        
+    //     // Update the enabled state of the model controls
+    //     updateAutocompleteControlsState()
+    // }
+    
+    private func setupAutocompleteControls() {
+        guard let advancedView = advancedSettingsView else { return }
+        
+        // Find the punctuation description text to position our controls below it
+        let existingControls = advancedView.subviews
+        let punctuationDescription = existingControls.first { 
+            if let textField = $0 as? NSTextField {
+                return textField.stringValue.contains("When enabled, if you type")
+            }
+            return false
+        }
+        
+        // Position below the punctuation description text
+        let startY = (punctuationDescription?.frame.minY ?? 150) - 20
+        
+        let labelX: CGFloat = 101  // Align with "Punctuation Symbols:" label
+        let fieldX: CGFloat = 241  // Align with other controls
+        let labelWidth: CGFloat = 136  // Same width as "Punctuation Symbols:" label
+        let fieldWidth: CGFloat = 217
+        let spacing: CGFloat = 24
+        
+        var y = startY
+        
+        // Autocomplete Section Label
+        let sectionLabel = NSTextField(labelWithString: "Autocomplete:")
+        sectionLabel.frame = NSRect(x: labelX, y: y, width: labelWidth, height: 16)
+        sectionLabel.alignment = .left
+        advancedView.addSubview(sectionLabel)
+        
+        // Checkbox
+        y -= spacing
+        autocompleteEnabledButton = NSButton(checkboxWithTitle: "Enable autocomplete suggestions", target: self, action: #selector(toggleAutocompleteEnabled(_:)))
+        autocompleteEnabledButton.frame = NSRect(x: fieldX, y: y, width: fieldWidth, height: 18)
+        autocompleteEnabledButton.state = Preferences.autocompleteEnabled ? .on : .off
+        advancedView.addSubview(autocompleteEnabledButton)
+        
+        // Model label
+        y -= spacing
+        autocompleteModelLabel = NSTextField(labelWithString: "Model:")
+        autocompleteModelLabel.frame = NSRect(x: labelX, y: y, width: labelWidth, height: 16)
+        autocompleteModelLabel.alignment = .right
+        advancedView.addSubview(autocompleteModelLabel)
+        
+        // Model input
+        autocompleteModelTextField = NSTextField(frame: NSRect(x: fieldX, y: y, width: fieldWidth, height: 22))
+        autocompleteModelTextField.stringValue = Preferences.autocompleteModel
+        autocompleteModelTextField.target = self
+        autocompleteModelTextField.action = #selector(updateAutocompleteModel(_:))
+        advancedView.addSubview(autocompleteModelTextField)
+        
+        // Description
+        y -= spacing + 5
+        let descriptionText = NSTextField(wrappingLabelWithString: "When enabled, autocomplete will suggest completions based on the previous text. Press Enter to accept or Esc to cancel.")
+        descriptionText.frame = NSRect(x: fieldX, y: y - 10, width: fieldWidth, height: 40)
+        descriptionText.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        descriptionText.textColor = .secondaryLabelColor
+        advancedView.addSubview(descriptionText)
+        
+        // Update state
+        updateAutocompleteControlsState()
+    }
+    
+    @objc private func toggleAutocompleteEnabled(_ sender: NSButton) {
+        Preferences.autocompleteEnabled = (sender.state == .on)
+        updateAutocompleteControlsState()
+    }
+    
+    @objc private func updateAutocompleteModel(_ sender: NSTextField) {
+        Preferences.autocompleteModel = sender.stringValue
+    }
+    
+    private func updateAutocompleteControlsState() {
+        let enabled = Preferences.autocompleteEnabled
+        autocompleteModelTextField.isEnabled = enabled
+        autocompleteModelLabel.textColor = enabled ? .labelColor : .disabledControlTextColor
     }
 
     @IBAction func updateBasisKeyboardLayoutAction(_ sender: Any) {
